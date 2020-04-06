@@ -1,0 +1,201 @@
+<?xml version="1.0"?>
+
+<robot name="rc_car" 
+    xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <material name="black">
+        <color rgba="0 0 0 1"/>
+    </material>
+    <material name="green">
+        <color rgba="0 0.5 0 1"/>
+    </material>
+    <material name="bright_green">
+        <color rgba="0 0.8 0.2 1"/>
+    </material>
+    <material name="red">
+        <color rgba="1 0 0 1"/>
+    </material>
+    <material name="grey">
+        <color rgba="0.3 0.3 0.3 1"/>
+    </material>
+    <material name="dark_grey">
+        <color rgba="0.2 0.2 0.2 1"/>
+    </material>
+    <material name="bright_grey">
+        <color rgba="0.8 0.8 0.8 1"/>
+    </material>
+
+
+    <xacro:property name="base_length" value="0.235"/>
+    <xacro:property name="base_width" value="0.100"/>
+    <xacro:property name="base_height" value="0.002"/>
+
+    <xacro:property name="wheel_separation" value="0.20"/>
+    <xacro:property name="wheel_radius" value="0.035"/>
+    <xacro:property name="wheel_base" value="0.030"/>
+
+
+    <link name="base_link">
+        <visual>
+            <geometry>
+                <box size="${base_length} ${base_width} ${base_height}"/>
+            </geometry>
+            <material name="black"/>
+        </visual>
+    </link>
+
+    <xacro:macro name="front_wheel" params="radius_ length_ prefix left_right_ reflect_y">
+
+        <link name="front_wheel_y_axis_${left_right_}">
+            <visual>
+                <geometry>
+                    <box size="0.01 0.01 0.01"/>
+                </geometry>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <material name="red"/>
+            </visual>
+        </link>
+
+        <joint name="j_front_rotation_${left_right_}_baseLink" type="revolute">
+            <axis xyz="0 0 1"/>
+            <parent link="base_link"/>
+            <child link="front_wheel_y_axis_${left_right_}"/>
+            <origin xyz="${base_length/2} ${wheel_separation/2*reflect_y} 0" rpy="0 0 0"/>
+            <limit effort="3.0" lower="${-pi/4}" upper="${pi/4}" velocity="1.0"/>
+        </joint>
+
+        <link name="front_wheel_${left_right_}">
+            <visual>
+                <geometry>
+                    <mesh filename="package://rc_car_description/meshes/wheel.stl" scale="0.001 0.001 0.001"/>
+                </geometry>
+                <origin xyz="0 0 0" rpy="${-pi/2*reflect_y} 0 0"/>
+                <material name="grey"/>
+            </visual>
+        </link>
+
+        <joint name="j_steer_front_${left_right_}" type="revolute">
+            <axis xyz="0 1 0"/>
+            <parent link="front_wheel_y_axis_${left_right_}"/>
+            <child link="front_wheel_${left_right_}"/>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <dynamics damping="0.7" friction="0.7"/>
+            <limit effort="7.0" lower="${-45*pi/180.0}" upper="${45*pi/180.0}" velocity="${200*pi/180.0*0.95}"/>
+        </joint>
+
+
+    </xacro:macro>
+
+    <xacro:macro name="rear_wheel" params="radius_ length_ prefix left_right_ reflect_y">
+
+        <link name="rear_wheel_${left_right_}">
+            <visual>
+                <geometry>
+                    <mesh filename="package://rc_car_description/meshes/wheel.stl" scale="0.001 0.001 0.001"/>
+                </geometry>
+                <origin xyz="0 0 0" rpy="${-pi/2*reflect_y} 0 0"/>
+                <material name="grey"/>
+            </visual>
+        </link>
+
+        <joint name="j_steer_rear_${left_right_}" type="revolute">
+            <axis xyz="0 1 0"/>
+            <parent link="base_link"/>
+            <child link="rear_wheel_${left_right_}"/>
+
+            <origin xyz="${-base_length/2} ${wheel_separation/2*reflect_y} 0" rpy="0 0 0"/>
+            <dynamics damping="0.7" friction="0.7"/>
+            <limit effort="7.0" lower="${-45*pi/180.0}" upper="${45*pi/180.0}" velocity="${200*pi/180.0*0.95}"/>
+        </joint>
+
+
+    </xacro:macro>
+
+    <!-- Right Front Wheel -->
+    <xacro:front_wheel radius_="${wheel_radius}" length_="${wheel_base}" prefix="base_link" left_right_="left" reflect_y="1"/>
+    <!-- Left Front Wheel -->
+    <xacro:front_wheel radius_="${wheel_radius}" length_="${wheel_base}" prefix="base_link" left_right_="right" reflect_y="-1"/>
+    <!-- Right Rear Wheel -->
+    <xacro:rear_wheel radius_="${wheel_radius}" length_="${wheel_base}" prefix="base_link" left_right_="left" reflect_y="1"/>
+    <!-- Left Rear Wheel -->
+    <xacro:rear_wheel radius_="${wheel_radius}" length_="${wheel_base}" prefix="base_link" left_right_="right" reflect_y="-1"/>
+
+
+    <link name="upper_base">
+        <visual>
+            <geometry>
+                <box size="${base_length} ${base_width} ${base_height}"/>
+            </geometry>
+            <material name="bright_green"/>
+        </visual>
+    </link>
+    <joint name="j_upperbase_baselink" type="fixed">
+        <axis xyz="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="upper_base"/>
+        <origin xyz="0 0 0.03" rpy="0 0 0"/>
+    </joint>
+
+    <!-- lidar -->
+    <link name="rplidar">
+        <visual>
+            <geometry>
+                <mesh filename="package://rc_car_description/meshes/rplidar.stl" scale="0.001 0.001 0.001"/>
+            </geometry>
+            <material name="dark_grey"/>
+        </visual>
+    </link>
+    <joint name="j_rplidar_upperbase" type="fixed">
+        <axis xyz="0 0 0"/>
+        <parent link="upper_base"/>
+        <child link="rplidar"/>
+        <origin xyz="0.08 0 0" rpy="0 0 0"/>
+    </joint>
+    <!-- lidar scan point-->
+    <link name="laser">
+        <visual>
+            <geometry>
+                <box size="0.01 0.01 0.01"/>
+            </geometry>
+            <material name="red"/>
+        </visual>
+    </link>
+    <joint name="j_rplidarScanPoint_rplidar" type="fixed">
+        <axis xyz="0 0 0"/>
+        <parent link="rplidar"/>
+        <child link="laser"/>
+        <origin xyz="0 0 0.05" rpy="0 0 0"/>
+    </joint>
+
+    <!-- rollcage -->
+    <link name="rollcage">
+        <visual>
+            <geometry>
+                <mesh filename="package://rc_car_description/meshes/rollcage.stl" scale="0.001 0.001 0.001"/>
+            </geometry>
+            <material name="black"/>
+        </visual>
+    </link>
+    <joint name="j_rollcage_upperbase" type="fixed">
+        <axis xyz="0 0 0"/>
+        <parent link="upper_base"/>
+        <child link="rollcage"/>
+        <origin xyz="-0.025 0 0" rpy="0 0 0"/>
+    </joint>
+    <!-- nanobox -->
+    <link name="nanobox">
+        <visual>
+            <geometry>
+                <mesh filename="package://rc_car_description/meshes/nano_box.stl" scale="0.0008 0.0008 0.0008"/>
+            </geometry>
+            <material name="bright_grey"/>
+        </visual>
+    </link>
+    <joint name="j_nanobox_upperbase" type="fixed">
+        <axis xyz="0 0 0"/>
+        <parent link="upper_base"/>
+        <child link="nanobox"/>
+        <origin xyz="-0.03 0 0" rpy="0 0 0"/>
+    </joint>
+
+</robot>
